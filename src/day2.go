@@ -39,7 +39,9 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"os"
+	"strings"
 )
 
 func check(e error) {
@@ -65,6 +67,59 @@ func readLines(filePath string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
+func toRPS(played string) string {
+	switch played {
+	case "A", "X":
+		return "r"
+	case "B", "Y":
+		return "p"
+	default:
+		return "s"
+	}
+}
+
+func score(us string, them string) int {
+	if us == "r" && them == "s" {
+		return 1 + 6
+	} else if us == "r" && them == "p" {
+		return 1 + 0
+	} else if us == "r" && them == "r" {
+		return 1 + 3
+	} else if us == "p" && them == "p" {
+		return 2 + 3
+	} else if us == "p" && them == "s" {
+		return 2
+	} else if us == "p" && them == "r" {
+		return 2 + 6
+	} else if us == "s" && them == "r" {
+		return 3
+	} else if us == "s" && them == "s" {
+		return 3 + 3
+	} else {
+		return 3 + 6
+	}
+}
+
+func determineWinner(p1 string, p2 string) int {
+	p1Move := toRPS(p1)
+	p2Move := toRPS(p2)
+	return score(p1Move, p2Move)
+}
+
 func main() {
-	file
+	filename := "./data/day2"
+	data, err := readLines(filename)
+	check(err)
+
+	var totalScore int = 0
+
+	for _, element := range data {
+		moves := strings.Split(element, " ")
+		us := moves[1]
+		them := moves[0]
+		totalScore += determineWinner(us, them)
+	}
+
+	fmt.Println("total score:", totalScore)
+
 }
