@@ -64,24 +64,31 @@ In the first group, the only item type that appears in all three rucksacks is lo
 Priorities for these items must still be found to organize the sticker attachment efforts: here, they are 18 (r) for the first group and 52 (Z) for the second group. The sum of these is 70.
 
 Find the item type that corresponds to the badges of each three-Elf group. What is the sum of the priorities of those item types?
+
+total: 2631
 */
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
 )
 
 type Pair struct {
-	sack     string
-	priority int
+	sackContents string
+	priority     int
 }
 
 func check(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+func log(s string) {
+	fmt.Println(s)
 }
 
 // this reads the file into an array of stings
@@ -107,6 +114,65 @@ func processData(sacks []string) int {
 		total += processSack(sack)
 	}
 	return total
+}
+
+func processGroups(sacks []string) int {
+	total := 0
+
+	for i := 0; i < len(sacks); i += 3 {
+		group := sacks[i : i+3]
+		badge, err := intersectGroup(group[0], group[1], group[2])
+		check(err)
+
+		// log(fmt.Sprintf("found %q as intersection of: \n%s\n%s\n%s", badge, group[0], group[1], group[2]))
+		total += priority(badge)
+	}
+
+	return total
+}
+
+type key struct {
+	first  bool
+	second bool
+	third  bool
+}
+
+func mts(m map[rune]key) string {
+	b := new(bytes.Buffer)
+	for key, value := range m {
+		fmt.Fprintf(b, "%q: 1=%v, 2=%v, 3=%v", key, value.first, value.second, value.third)
+	}
+	return b.String()
+}
+
+func intersectGroup(one string, two string, three string) (rune, error) {
+	m := make(map[rune]key)
+	iterateString(m, one, 1)
+	iterateString(m, two, 2)
+	iterateString(m, three, 3)
+
+	for k, v := range m {
+		if v.first && v.second && v.third {
+			return k, nil
+		}
+	}
+
+	return ' ', errors.New("no intersection")
+}
+
+func iterateString(m map[rune]key, s string, pack int) map[rune]key {
+	for _, ch := range s {
+		curr := m[ch]
+		if pack == 1 {
+			curr.first = true
+		} else if pack == 2 {
+			curr.second = true
+		} else {
+			curr.third = true
+		}
+		m[ch] = curr
+	}
+	return m
 }
 
 func processSack(sack string) int {
@@ -166,9 +232,16 @@ func test(input string, expectedValue int) int {
 func runTests(pairs []Pair, expectedTotal int) {
 	testTotal := 0
 	for _, p := range pairs {
-		testTotal += test(p.sack, p.priority)
+		testTotal += test(p.sackContents, p.priority)
 	}
 
+	if testTotal != expectedTotal {
+		panic(fmt.Sprintf("expectedTotal: %d, testTotal %d", expectedTotal, testTotal))
+	}
+}
+
+func runGroupTests(data []string, expectedTotal int) {
+	testTotal := processGroups(data)
 	if testTotal != expectedTotal {
 		panic(fmt.Sprintf("expectedTotal: %d, testTotal %d", expectedTotal, testTotal))
 	}
@@ -184,13 +257,24 @@ func main() {
 		Pair{"ttgJtRGJQctTZtZT", 20},
 		Pair{"CrZsJsPPZsGzwwsLwLmpwMDw", 19},
 	}
-
 	runTests(tests, 157)
+
+	groupTests := []string{
+		"vJrwpWtwJgWrhcsFMMfFFhFp",
+		"jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL",
+		"PmmdzqPrVvPwwTWBwg",
+		"wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn",
+		"ttgJtRGJQctTZtZT",
+		"CrZsJsPPZsGzwwsLwLmpwMDw",
+	}
+
+	runGroupTests(groupTests, 70)
 
 	filedata, err := readLines("./data/day3")
 	check(err)
 
-	total := processData((filedata))
+	// total := processData((filedata))
+	total := processGroups(filedata)
 
 	fmt.Println("total:", total)
 }
